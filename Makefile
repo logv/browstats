@@ -1,14 +1,14 @@
 default: all
 
-all: chrome-history
+all: chrome-history chromium-history
 
 chrome-history:
-		python dump.py ~/.config/chromium/Default/History | sybil ingest -table browser_history | sybil digest -table browser_history 
+		python dump.py ~/.config/google-chrome/Default/History | sybil ingest -table browstats && sybil digest -table browstats 
 
 chromium-history:
-		python dump.py ~/.config/chromium/Default/History | sybil ingest -table browser_history | sybil digest -table browser_history 
+		python dump.py ~/.config/chromium/Default/History | sybil ingest -table browstats && sybil digest -table browstats 
 
 clean:
-		rm db/browser_history/ -fr
+		rm db/browstats/ ~/.config/browstats/ -fr
 
 .PHONY: clean
