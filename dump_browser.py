@@ -152,7 +152,7 @@ def process(filename, args):
         if args.chrome:
             visit['time'] = int(to_seconds(visit[visit_time_col]))
         else:
-            visit['time'] = int(visit[visit_time_col])
+            visit['time'] = int(visit[visit_time_col] / 1e6)
 
 
         # ONLY WORKS FOR CHROME

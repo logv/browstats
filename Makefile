@@ -10,7 +10,7 @@ CHROME_ANDROID_HISTORY=.history.android_chrome.db
 
 default: all
 
-all: chrome-history chromium-history android-chrome-history
+all: chrome-history chromium-history firefox-history android-chrome-history
 
 chrome-history: export HIST_FILE=${HOME}/.config/google-chrome/Default/History
 chrome-history:
@@ -20,7 +20,7 @@ chromium-history: export HIST_FILE=${HOME}/.config/chromium/Default/History
 chromium-history:
 		${DUMP_CHROME_CMD} ${HIST_FILE} --chrome | ${INGEST_CMD} && ${DIGEST_CMD}
 
-firefox-history: 
+firefox-history:
 		${DUMP_FIREFOX_CMD} ${FIREFOX_FILES} --firefox | ${INGEST_CMD} && ${DIGEST_CMD}
 
 pull-adb:
