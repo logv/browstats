@@ -15,7 +15,7 @@ if len(sys.argv) < 2:
     print "Usage: %s path/to/chrome/history" % (sys.argv[0])
     sys.exit(0)
 
-FULL_FILE_PATH=os.path.abspath(sys.argv[1])
+FULL_FILE_PATH=None
 TEMP_HISTORY_FILE=".history.db"
 RUN_AT = int(time.time())
 
@@ -86,8 +86,47 @@ def to_seconds(h):
     return s-11644473600 # number of seconds from 1601 to 1970
 
 
+FIREFOX=False
+CHROME=True
+
+def setup_args():
+   import argparse
+   parser = argparse.ArgumentParser(description='Process browser history files.')
+   parser.add_argument('--firefox', action='store_true')
+   parser.add_argument('--chrome', action='store_true')
+   parser.add_argument('files', nargs='*', default=[], help='files to import from')
+
+   parsed = parser.parse_args(sys.argv[1:])
+
+   return parsed
+
+
+
 def main():
-    urls = json_marshall_query('SELECT * from urls')
+    args = setup_args()
+    for filename in args.files:
+        process(filename, args)
+
+def process(filename, args):
+    global FULL_FILE_PATH
+    FULL_FILE_PATH = os.path.abspath(filename)
+
+    if args.firefox:
+        url_table = 'moz_places'
+        visit_table = 'moz_historyvisits'
+        visit_time_col = 'visit_date'
+        url_col = 'place_id'
+    elif args.chrome:
+        url_table = 'urls'
+        visit_table = 'visits'
+        visit_time_col = 'visit_time'
+        url_col = 'url'
+    else:
+        print "UNKNOWN USAGE TYPE"
+        sys.exit(1)
+
+    
+    urls = json_marshall_query('SELECT * from %s' % (url_table, ))
     debug("NUM VISITED URLS:", len(urls))
 
     last_dump = load_last_dump()
@@ -96,9 +135,9 @@ def main():
         timestamp = to_windows_epoch(last_dump[FULL_FILE_PATH]['timestamp'])
     else:
         timestamp = 0
-    args = (timestamp,)
+    query_args = (timestamp,)
 
-    visits = json_marshall_query('SELECT * FROM visits WHERE visit_time > ?', args)
+    visits = json_marshall_query('SELECT * FROM %s WHERE %s > ?' % (visit_table, visit_time_col), query_args)
 
     debug("NUM VISITS:", len(visits))
 
@@ -109,12 +148,22 @@ def main():
         visit = visits[visit_id]
 
         # add timing info
-        visit['time'] = int(to_seconds(visit['visit_time']))
-        visit['transition'] = str(visit['transition'])
-        visit['visit_duration'] = visit['visit_duration'] / 1e7
+
+        if args.chrome:
+            visit['time'] = int(to_seconds(visit[visit_time_col]))
+        else:
+            visit['time'] = int(visit[visit_time_col])
+
+
+        # ONLY WORKS FOR CHROME
+        if 'transition' in visit:
+            visit['transition'] = str(visit['transition'])
+        if 'visit_duration' in visit:
+            visit['visit_duration'] = visit['visit_duration'] / 1e7
+        # CHROME ONLY
 
         # ADD URL INFO
-        url = urls[visit['url']]
+        url = urls[visit[url_col]]
         parsed = urlparse(url['url'])
 
         visit['dbpath'] = FULL_FILE_PATH
@@ -143,11 +192,10 @@ def main():
                     visit['prev_host'] = parsed.netloc
                     visit['prev_path'] = parsed.path
                     visit['prev_query'] = parsed.query
-
-        del visit['segment_id']
-        del visit['from_visit']
-
-        del visit['visit_time']
+    
+        for c in ['segment_id', 'from_visit', 'visit_time']:
+            if c in visit:
+                del visit[c]
 
         print json.dumps(visit)
 
