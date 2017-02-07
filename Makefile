@@ -24,8 +24,8 @@ firefox-history:
 		${DUMP_FIREFOX_CMD} ${FIREFOX_FILES} --firefox | ${INGEST_CMD} && ${DIGEST_CMD}
 
 pull-adb:
-		adb root
-		adb pull /data/data/com.android.chrome/app_chrome/Default/History ${CHROME_ANDROID_HISTORY}
+		adb root || true
+		adb pull /data/data/com.android.chrome/app_chrome/Default/History ${CHROME_ANDROID_HISTORY} || true
 
 android-chrome-history: pull-adb
 android-chrome-history: export HIST_FILE=${CHROME_ANDROID_HISTORY}
